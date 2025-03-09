@@ -1,5 +1,19 @@
 import 'package:flutter/material.dart';
 
+class Plan {
+  String name;
+  String description;
+  DateTime date;
+  bool isCompleted;
+
+  Plan({
+    required this.name,
+    required this.description,
+    required this.date,
+    this.isCompleted = false,
+  });
+}
+
 void main() {
   runApp(const MyApp());
 }
@@ -7,116 +21,141 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'CW04',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        primarySwatch: Colors.purple,
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Colors.black),
+        ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const PlanManagerScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class PlanManagerScreen extends StatefulWidget {
+  const PlanManagerScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _PlanManagerScreenState createState() => _PlanManagerScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _PlanManagerScreenState extends State<PlanManagerScreen> {
+  List<Plan> plans = [];
 
-  void _incrementCounter() {
+  void _addPlan(String name, String description, DateTime date) {
+    setState(() => plans.add(Plan(name: name, description: description, date: date)));
+  }
+
+  void _updatePlan(int index, String name, String description) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      plans[index].name = name;
+      plans[index].description = description;
     });
+  }
+
+  void _toggleCompletion(int index) {
+    setState(() => plans[index].isCompleted = !plans[index].isCompleted);
+  }
+
+  void _removePlan(int index) {
+    setState(() => plans.removeAt(index));
+  }
+
+  void _showPlanDialog({int? index}) {
+    final nameController = TextEditingController(text: index == null ? '' : plans[index].name);
+    final descriptionController = TextEditingController(text: index == null ? '' : plans[index].description);
+    DateTime selectedDate = index == null ? DateTime.now() : plans[index].date;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Colors.purple.shade50,
+              title: Text(index == null ? 'Create New Plan' : 'Edit Plan'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Plan Name')),
+                  TextField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Plan Description')),
+                  ListTile(
+                    title: const Text('Select Date'),
+                    trailing: Text('${selectedDate.toLocal()}'.split(' ')[0]),
+                    onTap: () async {
+                      DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2101),
+                      );
+                      if (picked != null) setState(() => selectedDate = picked);
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    if (index == null) {
+                      _addPlan(nameController.text, descriptionController.text, selectedDate);
+                    } else {
+                      _updatePlan(index, nameController.text, descriptionController.text);
+                    }
+                  },
+                  child: Text(index == null ? 'Create Plan' : 'Save Changes'),
+                ),
+                TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      appBar: AppBar(title: const Text('CW04'), backgroundColor: Colors.purple.shade300),
+      body: plans.isEmpty
+          ? const Center(child: Text('No Plans Added', style: TextStyle(fontSize: 18, color: Colors.grey)))
+          : ListView.builder(
+              itemCount: plans.length,
+              itemBuilder: (context, index) {
+                Plan plan = plans[index];
+                return GestureDetector(
+                  onHorizontalDragUpdate: (details) {
+                    if (details.primaryDelta! < 0 && !plan.isCompleted) _toggleCompletion(index);
+                    if (details.primaryDelta! > 0 && plan.isCompleted) _toggleCompletion(index);
+                  },
+                  onLongPress: () => _showPlanDialog(index: index),
+                  onDoubleTap: () => _removePlan(index),
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    color: plan.isCompleted ? Colors.green.shade100 : Colors.white,
+                    elevation: 4,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(16),
+                      title: Text(plan.name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.purple.shade700)),
+                      subtitle: Text('${plan.description}\n${plan.date.toLocal()}'.split(' ')[0], style: const TextStyle(color: Colors.grey)),
+                    ),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
-      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
+        onPressed: () => _showPlanDialog(),
+        tooltip: 'Create Plan',
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+        backgroundColor: Colors.purple.shade300,
+      ),
     );
   }
 }
